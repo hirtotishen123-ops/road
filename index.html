@@ -3,93 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מדווח כבישים חכם v2</title>
+    <title>מדווח כבישים חופשי</title>
     <style>
         body { font-family: system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; }
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-        h2 { color: #1a73e8; text-align: center; margin-top: 0; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { color: #202124; text-align: center; margin-bottom: 20px; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        button { background: #1a73e8; color: white; border: none; cursor: pointer; font-weight: bold; }
-        .result-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 20px; border-right: 5px solid #1a73e8; display: none; }
-        .loader { color: #666; font-size: 14px; text-align: center; display: none; margin: 10px 0; }
+        button { background: #34a853; color: white; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        .result-box { background: #f8f9fa; padding: 15px; border-radius: 10px; margin-top: 20px; border: 1px dashed #34a853; display: none; white-space: pre-wrap; }
+        .status { font-size: 12px; color: #666; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>דיווח מיקום אוטומטי</h2>
+    <h2>דיווח כבישים (חינמי)</h2>
     
-    <label>הדבק קואורדינטות (למשל: 32.1, 34.8):</label>
-    <input type="text" id="coordsInput" placeholder="הדבק כאן מה-GPS">
-    <button onclick="analyzeLocation()">נתח מיקום וצומת</button>
-    
-    <div id="loader" class="loader">מחשב מרחקים וצמתים...</div>
+    <label>קואורדינטות (מה-GPS):</label>
+    <input type="text" id="coordsInput" placeholder="הדבק כאן (למשל 32.1, 34.8)">
+    <button onclick="detectLocation()">זהה מיקום אוטומטית</button>
+    <div id="status" class="status"></div>
 
-    <hr>
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
     
-    <input type="text" id="roadName" placeholder="שם הכביש">
+    <label>כביש / רחוב:</label>
+    <input type="text" id="roadName">
+
+    <label>לכיוון:</label>
     <select id="direction">
-        <option value="צפון">צפון</option><option value="דרום">דרום</option>
-        <option value="מזרח">מזרח</option><option value="מערב">מערב</option>
+        <option value="צפון">צפון</option>
+        <option value="דרום">דרום</option>
+        <option value="מזרח">מזרח</option>
+        <option value="מערב">מערב</option>
     </select>
 
-    <div style="display: flex; gap: 5px;">
+    <div style="display: flex; gap: 10px;">
         <select id="rel" style="flex: 1;"><option value="אחרי">אחרי</option><option value="לפני">לפני</option></select>
-        <input type="text" id="juncName" placeholder="צומת/מחלף" style="flex: 2;">
+        <input type="text" id="juncName" placeholder="צומת / מחלף" style="flex: 2;">
     </div>
 
-    <button style="background: #34a853;" onclick="copyReport()">צור דיווח להעתקה</button>
+    <button style="background: #1a73e8; margin-top: 15px;" onclick="generate()">צור נוסח דיווח</button>
+    
     <div id="finalResult" class="result-box"></div>
 </div>
 
 <script>
-    // --- הדבק את המפתח שלך כאן למטה בין הגרשיים ---
-    const API_KEY = 'AIzaSyDCxVVQJWfjxJadwMYk3RDSnRLDnP-ATpY'; 
-
-    async function analyzeLocation() {
+    async function detectLocation() {
         const input = document.getElementById('coordsInput').value;
-        const loader = document.getElementById('loader');
+        const status = document.getElementById('status');
         const coords = input.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
 
-        if (!coords) { alert("נא להזין קואורדינטות תקינות"); return; }
+        if (!coords) { alert("נא להזין קואורדינטות תקינות (מספרים עם פסיק)"); return; }
         
-        loader.style.display = 'block';
-        const lat = parseFloat(coords[1]);
-        const lng = parseFloat(coords[2]);
+        status.innerText = "מפענח מיקום מול השרת...";
+        const lat = coords[1];
+        const lon = coords[2];
 
         try {
-            // 1. זיהוי כביש
-            const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${API_KEY}&language=he`);
-            const geoData = await geoRes.json();
-            const road = geoData.results[0].address_components.find(c => c.types.includes("route"));
-            if (road) document.getElementById('roadName').value = road.long_name;
-
-            // 2. חיפוש צומת קרוב (Places API)
-            const placeRes = await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=2000&keyword=צומת מחלף&key=${API_KEY}&language=he`);
-            const placeData = await placeRes.json();
-
-            if (placeData.results && placeData.results.length > 0) {
-                const nearest = placeData.results[0];
-                document.getElementById('juncName').value = nearest.name.replace("צומת ", "").replace("מחלף ", "");
+            // שימוש ב-API החינמי של OpenStreetMap
+            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
+            const data = await response.json();
+            
+            if (data.address) {
+                // מנסה למצוא שם של כביש או רחוב
+                const road = data.address.road || data.address.suburb || data.address.city || "";
+                document.getElementById('roadName').value = road;
                 
-                // 3. חישוב לפני/אחרי (לפי קווי רוחב פשוטים כברירת מחדל)
-                const juncLat = nearest.geometry.location.lat;
-                document.getElementById('rel').value = (lat > juncLat) ? "אחרי" : "לפני";
+                // מנסה למצוא צומת/מקום קרוב (אם מופיע בתיאור)
+                const nearby = data.address.amenity || data.address.neighbourhood || "";
+                if (nearby) document.getElementById('juncName').value = nearby;
             }
-
+            status.innerText = "הזיהוי הושלם!";
         } catch (e) {
-            alert("שגיאה בתקשורת עם גוגל");
+            status.innerText = "שגיאה בגישה לשרת. נסה שוב.";
         }
-        loader.style.display = 'none';
     }
 
-    function copyReport() {
+    function generate() {
         const road = document.getElementById('roadName').value;
         const dir = document.getElementById('direction').value;
         const rel = document.getElementById('rel').value;
         const junc = document.getElementById('juncName').value;
         
-        const text = `כביש ${road} לכיוון ${dir}, ${rel} צומת/מחלף ${junc}`;
+        const text = `⚠️ דיווח: כביש ${road} לכיוון ${dir}, ${rel} צומת/מחלף ${junc}`;
         const resBox = document.getElementById('finalResult');
         resBox.style.display = 'block';
         resBox.innerText = text;
