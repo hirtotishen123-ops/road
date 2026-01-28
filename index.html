@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מדווח כבישים</title>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px; }
+        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; }
+        label { display: block; margin-top: 10px; font-weight: bold; color: #444; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
+        button { background: #1a73e8; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        #result { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 20px; display: none; border-right: 5px solid #1a73e8; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>דיווח מיקום חכם</h2>
+    
+    <label>מספר כביש:</label>
+    <input type="text" id="roadName" placeholder="למשל: 4">
+    
+    <label>לכיוון:</label>
+    <select id="direction">
+        <option value="">בחר כיוון...</option>
+        <option value="צפון">צפון</option>
+        <option value="דרום">דרום</option>
+        <option value="מזרח">מזרח</option>
+        <option value="מערב">מערב</option>
+    </select>
+
+    <label>מיקום יחסי:</label>
+    <select id="relation">
+        <option value="אחרי">אחרי</option>
+        <option value="לפני">לפני</option>
+    </select>
+    
+    <input type="text" id="junction" placeholder="שם צומת או מחלף">
+
+    <button onclick="generate()">צור נוסח דיווח</button>
+
+    <div id="result" id="copyArea"></div>
+</div>
+
+<script>
+    function generate() {
+        const road = document.getElementById('roadName').value;
+        const dir = document.getElementById('direction').value;
+        const rel = document.getElementById('relation').value;
+        const junc = document.getElementById('junction').value;
+        
+        if(!road || !dir || !junc) {
+            alert("נא למלא את כל הפרטים");
+            return;
+        }
+
+        const text = `כביש ${road} לכיוון ${dir}, ${rel} מחלף/צומת ${junc}`;
+        const resDiv = document.getElementById('result');
+        resDiv.style.display = 'block';
+        resDiv.innerHTML = `<strong>הדיווח שלך (לחץ להעתקה):</strong><br><span id="finalText">${text}</span>`;
+    }
+</script>
+
+</body>
+</html>
