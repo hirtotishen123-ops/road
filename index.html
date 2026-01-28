@@ -5,36 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>מדווח כבישים מהיר</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); width: 90%; max-width: 350px; text-align: center; }
-        input, select { width: 100%; padding: 15px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
-        button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 18px; }
-        .hint { font-size: 12px; color: #666; margin-top: 10px; }
+        body { font-family: system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 350px; text-align: center; }
+        input, select { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px; transition: 0.2s; }
+        button:active { background: #174ea6; transform: scale(0.98); }
+        .step { font-size: 13px; color: #5f6368; margin-top: 15px; background: #e8f0fe; padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>דיווח חכם</h2>
-        <input type="text" id="coords" placeholder="הדבק קואורדינטות כאן">
+        <h2 style="margin-top:0;">דיווח חכם ל-Gemini</h2>
+        
+        <input type="text" id="coords" placeholder="הדבק קואורדינטות מהמפה">
+        
         <select id="dir">
-            <option value="צפון">צפון</option>
-            <option value="דרום">דרום</option>
-            <option value="מזרח">מזרח</option>
-            <option value="מערב">מערב</option>
+            <option value="צפון">כיוון נסיעה: צפון</option>
+            <option value="דרום">כיוון נסיעה: דרום</option>
+            <option value="מזרח">כיוון נסיעה: מזרח</option>
+            <option value="מערב">כיוון נסיעה: מערב</option>
         </select>
-        <button onclick="sendToGemini()">נתח עם Gemini</button>
-        <p class="hint">הכפתור יפתח את הצ'אט שלנו עם המיקום מוכן לניתוח</p>
+
+        <button onclick="goToGemini()">שלח לניתוח ב-Gemini</button>
+        
+        <div class="step">
+            1. הכפתור יעתיק את הנתונים<br>
+            2. האתר של Gemini יפתח<br>
+            3. פשוט תעשה <b>הדבק</b> ותשלח!
+        </div>
     </div>
 
     <script>
-        function sendToGemini() {
+        function goToGemini() {
             const coords = document.getElementById('coords').value;
             const dir = document.getElementById('dir').value;
-            const prompt = `נתח את המיקום הבא: ${coords} לכיוון ${dir}. תן לי דיווח מדויק (כביש, צומת/מחלף, לפני/אחרי).`;
             
-            // מעתיק את הטקסט ללוח כדי שתוכל פשוט להדביק לי אותו כאן
+            if (!coords) {
+                alert("קודם תדביק קואורדינטות!");
+                return;
+            }
+
+            // הפרומפט שישלח אלי
+            const prompt = `נתח את המיקום הבא: ${coords} לכיוון ${dir}. תן לי דיווח מדויק (כביש, צומת/מחלף, לפני/אחרי) כולל נקודות איחוד כבישים אם יש.`;
+            
+            // העתקה ללוח
             navigator.clipboard.writeText(prompt).then(() => {
-                alert("הבקשה הועתקה! עכשיו פשוט הדבק אותה כאן בצ'אט.");
+                // פתיחת ג'מיני בחלון חדש
+                window.open('https://gemini.google.com/', '_blank');
+            }).catch(err => {
+                console.error('שגיאה בהעתקה: ', err);
             });
         }
     </script>
