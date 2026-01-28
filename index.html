@@ -3,63 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מדווח כבישים</title>
+    <title>מדווח כבישים חכם v2</title>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 400px; }
-        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; }
-        label { display: block; margin-top: 10px; font-weight: bold; color: #444; }
+        body { font-family: system-ui, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 10px; }
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+        h2 { color: #1a73e8; text-align: center; margin-top: 0; }
         input, select, button { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; box-sizing: border-box; }
-        button { background: #1a73e8; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 20px; }
-        #result { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 20px; display: none; border-right: 5px solid #1a73e8; word-wrap: break-word; }
+        button { background: #1a73e8; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .result-box { background: #e8f0fe; padding: 15px; border-radius: 10px; margin-top: 20px; border-right: 5px solid #1a73e8; display: none; }
+        .loader { color: #666; font-size: 14px; text-align: center; display: none; margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>דיווח מיקום חכם</h2>
+    <h2>דיווח מיקום אוטומטי</h2>
     
-    <label>מספר כביש:</label>
-    <input type="text" id="roadName" placeholder="למשל: 4">
+    <label>הדבק קואורדינטות (למשל: 32.1, 34.8):</label>
+    <input type="text" id="coordsInput" placeholder="הדבק כאן מה-GPS">
+    <button onclick="analyzeLocation()">נתח מיקום וצומת</button>
     
-    <label>לכיוון:</label>
+    <div id="loader" class="loader">מחשב מרחקים וצמתים...</div>
+
+    <hr>
+    
+    <input type="text" id="roadName" placeholder="שם הכביש">
     <select id="direction">
-        <option value="">בחר כיוון...</option>
-        <option value="צפון">צפון</option>
-        <option value="דרום">דרום</option>
-        <option value="מזרח">מזרח</option>
-        <option value="מערב">מערב</option>
+        <option value="צפון">צפון</option><option value="דרום">דרום</option>
+        <option value="מזרח">מזרח</option><option value="מערב">מערב</option>
     </select>
 
-    <label>מיקום יחסי:</label>
-    <select id="relation">
-        <option value="אחרי">אחרי</option>
-        <option value="לפני">לפני</option>
-    </select>
-    
-    <input type="text" id="junction" placeholder="שם צומת או מחלף">
+    <div style="display: flex; gap: 5px;">
+        <select id="rel" style="flex: 1;"><option value="אחרי">אחרי</option><option value="לפני">לפני</option></select>
+        <input type="text" id="juncName" placeholder="צומת/מחלף" style="flex: 2;">
+    </div>
 
-    <button onclick="generate()">צור נוסח דיווח</button>
-
-    <div id="result" id="copyArea"></div>
+    <button style="background: #34a853;" onclick="copyReport()">צור דיווח להעתקה</button>
+    <div id="finalResult" class="result-box"></div>
 </div>
 
 <script>
-    function generate() {
+    // --- הדבק את המפתח שלך כאן למטה בין הגרשיים ---
+    const API_KEY = 'AIzaSyDCxVVQJWfjxJadwMYk3RDSnRLDnP-ATpY'; 
+
+    async function analyzeLocation() {
+        const input = document.getElementById('coordsInput').value;
+        const loader = document.getElementById('loader');
+        const coords = input.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+
+        if (!coords) { alert("נא להזין קואורדינטות תקינות"); return; }
+        
+        loader.style.display = 'block';
+        const lat = parseFloat(coords[1]);
+        const lng = parseFloat(coords[2]);
+
+        try {
+            // 1. זיהוי כביש
+            const geoRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${API_KEY}&language=he`);
+            const geoData = await geoRes.json();
+            const road = geoData.results[0].address_components.find(c => c.types.includes("route"));
+            if (road) document.getElementById('roadName').value = road.long_name;
+
+            // 2. חיפוש צומת קרוב (Places API)
+            const placeRes = await fetch(`https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=2000&keyword=צומת מחלף&key=${API_KEY}&language=he`);
+            const placeData = await placeRes.json();
+
+            if (placeData.results && placeData.results.length > 0) {
+                const nearest = placeData.results[0];
+                document.getElementById('juncName').value = nearest.name.replace("צומת ", "").replace("מחלף ", "");
+                
+                // 3. חישוב לפני/אחרי (לפי קווי רוחב פשוטים כברירת מחדל)
+                const juncLat = nearest.geometry.location.lat;
+                document.getElementById('rel').value = (lat > juncLat) ? "אחרי" : "לפני";
+            }
+
+        } catch (e) {
+            alert("שגיאה בתקשורת עם גוגל");
+        }
+        loader.style.display = 'none';
+    }
+
+    function copyReport() {
         const road = document.getElementById('roadName').value;
         const dir = document.getElementById('direction').value;
-        const rel = document.getElementById('relation').value;
-        const junc = document.getElementById('junction').value;
+        const rel = document.getElementById('rel').value;
+        const junc = document.getElementById('juncName').value;
         
-        if(!road || !dir || !junc) {
-            alert("נא למלא את כל הפרטים");
-            return;
-        }
-
-        const text = `כביש ${road} לכיוון ${dir}, ${rel} מחלף/צומת ${junc}`;
-        const resDiv = document.getElementById('result');
-        resDiv.style.display = 'block';
-        resDiv.innerHTML = `<strong>הדיווח שלך (לחץ להעתקה):</strong><br><span id="finalText">${text}</span>`;
+        const text = `כביש ${road} לכיוון ${dir}, ${rel} צומת/מחלף ${junc}`;
+        const resBox = document.getElementById('finalResult');
+        resBox.style.display = 'block';
+        resBox.innerText = text;
     }
 </script>
 
