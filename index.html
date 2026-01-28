@@ -10,14 +10,14 @@
         input, select { width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 1px solid #ddd; font-size: 16px; box-sizing: border-box; }
         button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 18px; transition: 0.2s; }
         button:active { background: #174ea6; transform: scale(0.98); }
-        .step { font-size: 13px; color: #5f6368; margin-top: 15px; background: #e8f0fe; padding: 10px; border-radius: 8px; }
+        .step { font-size: 13px; color: #5f6368; margin-top: 15px; background: #f1f3f4; padding: 10px; border-radius: 8px; border: 1px solid #e0e0e0; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2 style="margin-top:0;">דיווח חכם ל-Gemini</h2>
+        <h2 style="margin-top:0; color:#1a73e8;">דיווח ל-Gemini App</h2>
         
-        <input type="text" id="coords" placeholder="הדבק קואורדינטות מהמפה">
+        <input type="text" id="coords" placeholder="הדבק קואורדינטות כאן">
         
         <select id="dir">
             <option value="צפון">כיוון נסיעה: צפון</option>
@@ -26,17 +26,17 @@
             <option value="מערב">כיוון נסיעה: מערב</option>
         </select>
 
-        <button onclick="goToGemini()">שלח לניתוח ב-Gemini</button>
+        <button onclick="openGeminiApp()">פתח אפליקציה ונתח</button>
         
         <div class="step">
-            1. הכפתור יעתיק את הנתונים<br>
-            2. האתר של Gemini יפתח<br>
-            3. פשוט תעשה <b>הדבק</b> ותשלח!
+            <b>איך זה עובד?</b><br>
+            הנתונים יועתקו אוטומטית.<br>
+            האפליקציה תיפתח -> תעשה <b>הדבק</b> ושלח!
         </div>
     </div>
 
     <script>
-        function goToGemini() {
+        function openGeminiApp() {
             const coords = document.getElementById('coords').value;
             const dir = document.getElementById('dir').value;
             
@@ -45,15 +45,22 @@
                 return;
             }
 
-            // הפרומפט שישלח אלי
             const prompt = `נתח את המיקום הבא: ${coords} לכיוון ${dir}. תן לי דיווח מדויק (כביש, צומת/מחלף, לפני/אחרי) כולל נקודות איחוד כבישים אם יש.`;
             
-            // העתקה ללוח
+            // העתקה ללוח (Clipboard)
             navigator.clipboard.writeText(prompt).then(() => {
-                // פתיחת ג'מיני בחלון חדש
-                window.open('https://gemini.google.com/', '_blank');
+                // מנסה לפתוח את האפליקציה דרך ה-Protocol
+                // ברוב המכשירים הקישור הזה יקפיץ את האפליקציה המותקנת
+                window.location.href = "googleapp://gemini"; 
+                
+                // גיבוי: אם האפליקציה לא נפתחת תוך שנייה, פתח את האתר
+                setTimeout(() => {
+                    if (!document.hidden) {
+                        window.open('https://gemini.google.com/', '_blank');
+                    }
+                }, 1500);
             }).catch(err => {
-                console.error('שגיאה בהעתקה: ', err);
+                alert("שגיאה בהעתקה");
             });
         }
     </script>
